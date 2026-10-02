@@ -1,0 +1,206 @@
+[
+  {
+    "id": "usr-admin-heliya",
+    "username": "heliya",
+    "passwordHash": "heliya84",
+    "role": "ADMIN",
+    "fullName": "هلیا غفور (مدیر ارشد سامانه هلی‌بار)",
+    "mobile": "09120000001",
+    "isActive": true
+  },
+  {
+    "id": "usr-drv-main",
+    "username": "09124451092",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "محمدجواد اصغری (راننده نیسان)",
+    "mobile": "09124451092",
+    "isActive": true
+  },
+  {
+    "id": "usr-sup-3873",
+    "username": "royaghafoori",
+    "passwordHash": "09192974529",
+    "role": "SUPPORT",
+    "fullName": "رویا غفوری",
+    "mobile": "09192974529",
+    "plateCapacity": 550,
+    "isActive": true,
+    "createdAt": "2026-09-27T15:51:23.873Z",
+    "nationalId": "4522551125",
+    "address": "قزوین-خیابان پونک - کوچه امیبرکبیر12",
+    "provinceCity": "قزوین / قزوین"
+  },
+  {
+    "id": "usr-sup-8495",
+    "username": "helmaghafoori",
+    "passwordHash": "09338173520",
+    "role": "SUPPORT",
+    "fullName": "حلما غفوری",
+    "mobile": "09338173520",
+    "plateCapacity": 50,
+    "isActive": true,
+    "createdAt": "2026-09-27T15:53:58.495Z",
+    "nationalId": "4312556652",
+    "address": "خیابان توحید / کوچه صحرا کارنیان",
+    "provinceCity": "قزوین / قزوین"
+  },
+  {
+    "id": "usr-drv-2679",
+    "username": "0012345678",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "رضا اکبری",
+    "mobile": "09121112233",
+    "isActive": true
+  },
+  {
+    "id": "usr-drv-7290",
+    "username": "0098765432",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "حسین کمالی",
+    "mobile": "09124445566",
+    "isActive": true
+  },
+  {
+    "id": "usr-drv-7581",
+    "username": "4256525642",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده 5642",
+    "mobile": "09127766842",
+    "isActive": true,
+    "createdAt": "2026-09-27T15:55:17.581Z"
+  },
+  {
+    "id": "usr-drv-0558",
+    "username": "5555555555",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده 5555",
+    "mobile": "09126761682",
+    "isActive": true,
+    "createdAt": "2026-09-27T15:55:40.558Z"
+  },
+  {
+    "id": "usr-drv-2796",
+    "username": "9999999997",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده 9997",
+    "mobile": "09128085691",
+    "isActive": true,
+    "createdAt": "2026-09-27T15:56:52.796Z"
+  },
+  {
+    "id": "usr-drv-4449",
+    "username": "436589654",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده 9654",
+    "mobile": "09127832973",
+    "isActive": true,
+    "createdAt": "2026-09-27T16:12:24.449Z"
+  },
+  {
+    "id": "usr-drv-4325",
+    "username": "8797946255",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده 6255",
+    "mobile": "09124915928",
+    "isActive": true,
+    "createdAt": "2026-09-27T16:13:24.325Z"
+  },
+  {
+    "id": "usr-drv-8304",
+    "username": "2559959949",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده 9949",
+    "mobile": "09124222778",
+    "isActive": true,
+    "createdAt": "2026-09-27T16:17:18.304Z"
+  },
+  {
+    "id": "usr-drv-2600",
+    "username": "1151565665",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده 5665",
+    "mobile": "09124074657",
+    "isActive": true,
+    "createdAt": "2026-09-27T16:18:12.600Z"
+  },
+  {
+    "id": "usr-drv-6367",
+    "username": "4312565284",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده 5284",
+    "mobile": "09127580957",
+    "isActive": true,
+    "createdAt": "2026-09-27T16:27:06.367Z"
+  },
+  {
+    "id": "usr-drv-3830",
+    "username": "3434343434",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده 3434",
+    "mobile": "09129934735",
+    "isActive": true,
+    "createdAt": "2026-09-27T16:27:33.830Z"
+  },
+  {
+    "id": "usr-drv-6517",
+    "username": "1111111111",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده 1111",
+    "mobile": "09128488592",
+    "isActive": true,
+    "createdAt": "2026-09-27T16:28:06.517Z"
+  },
+  {
+    "id": "usr-drv-4946",
+    "username": "5766868787",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده 8787",
+    "mobile": "09128518958",
+    "isActive": true,
+    "createdAt": "2026-09-27T16:33:34.946Z"
+  },
+  {
+    "id": "usr-drv-8584",
+    "username": "5345454545",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده 4545",
+    "mobile": "09122272309",
+    "isActive": true,
+    "createdAt": "2026-09-27T16:35:48.584Z"
+  },
+  {
+    "id": "usr-drv-3703",
+    "username": "9893264584",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده 4584",
+    "mobile": "09122658339",
+    "isActive": true,
+    "createdAt": "2026-09-27T16:42:03.703Z"
+  },
+  {
+    "id": "usr-drv-4887",
+    "username": "0078192341",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "محمدجواد اصغری",
+    "mobile": "09124451092",
+    "isActive": true,
+    "createdAt": "2026-09-27T17:49:34.887Z"
+  }
+]

@@ -1,0 +1,11 @@
+[
+  {
+    "issuerId": "usr-sup-3873",
+    "isAutoRegisterActive": false,
+    "autoRegisterIntervalMinutes": 15,
+    "updatedAt": "2026-09-29T09:16:11.050Z",
+    "lastDisabledReason": "CODED_PLATE_OTP_REQUIRED",
+    "lastDisabledPlate": "81 ع 641 - 22",
+    "lastDisabledAt": "2026-09-29T09:16:11.050Z"
+  }
+]

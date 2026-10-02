@@ -1,0 +1,20 @@
+{
+  "short_name": "helibar | هلی‌بار",
+  "name": "هلی‌بار - سامانه هوشمند بارنامه شهری",
+  "description": "پلتفرم جامع صدور هوشمند، مدیریت ناوگان و پردازش گروهی بارنامه شهری متصل به وب‌سرویس‌های سپاد (UTCMS)",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#020617",
+  "theme_color": "#f59e0b",
+  "display": "standalone",
+  "orientation": "any",
+  "dir": "rtl",
+  "lang": "fa-IR",
+  "categories": ["business", "productivity", "utilities"]
+}

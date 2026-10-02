@@ -1,0 +1,6 @@
+{
+  "name": "هلی‌بار - سامانه مدیریت بارنامه و ناوگان",
+  "description": "پلتفرم جامع صدور هوشمند بارنامه شهری، مدیریت ناوگان و استعلام سوخت متصل به وب‌سرویس‌های سپاد (UTCMS)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

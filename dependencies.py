@@ -1,0 +1,38 @@
+# Proxy import to backend.dependencies
+from backend.dependencies import (
+    get_current_user,
+    require_roles,
+    require_admin,
+    require_support_or_admin,
+    require_driver_only,
+    require_settings_access,
+    enforce_driver_otp_only,
+    check_subscription_status,
+    SubscriptionMiddleware,
+    IsolatedTenantContext,
+    get_isolated_tenant,
+    SUPER_ADMIN_UUID,
+    oauth2_scheme,
+    http_bearer_scheme,
+    SUBSCRIPTION_EXEMPT_PATHS,
+    DRIVER_ALLOWED_PATHS,
+)
+
+__all__ = [
+    "get_current_user",
+    "require_roles",
+    "require_admin",
+    "require_support_or_admin",
+    "require_driver_only",
+    "require_settings_access",
+    "enforce_driver_otp_only",
+    "check_subscription_status",
+    "SubscriptionMiddleware",
+    "IsolatedTenantContext",
+    "get_isolated_tenant",
+    "SUPER_ADMIN_UUID",
+    "oauth2_scheme",
+    "http_bearer_scheme",
+    "SUBSCRIPTION_EXEMPT_PATHS",
+    "DRIVER_ALLOWED_PATHS",
+]
