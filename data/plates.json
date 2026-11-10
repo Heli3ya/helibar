@@ -542,5 +542,22 @@
     "max_load_capacity_kg": 2200,
     "is_active": true,
     "created_at": "2026-09-27T17:49:34.887Z"
+  },
+  {
+    "id": "58d89887-f9dc-4d0e-9f7c-c602e19f5c4e",
+    "owner_id": "usr-sup-3873",
+    "plate_number": "72 ع 532 - 33",
+    "plate_part1": "72",
+    "plate_letter": "ع",
+    "plate_part2": "532",
+    "plate_province": "33",
+    "vehicle_type": "وانت نیسان",
+    "smart_card_number": "DRV-653232",
+    "driver_name": "راننده کد 3232",
+    "driver_national_id": "4646653232",
+    "driver_mobile": "09122293075",
+    "max_load_capacity_kg": 2200,
+    "is_active": true,
+    "created_at": "2026-11-10T20:43:24.504Z"
   }
 ]

@@ -6,3 +6,16 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Local AI workspace memory (not part of the project)
+.workbuddy-ai/
+
+# Uploaded spreadsheets (transient)
+uploads/

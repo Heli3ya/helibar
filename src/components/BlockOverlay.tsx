@@ -1,9 +1,9 @@
 import React from 'react';
-import { Lock, CreditCard, ShieldAlert, PhoneCall, RefreshCw } from 'lucide-react';
+import { Lock, ShieldAlert, PhoneCall, RefreshCw } from 'lucide-react';
 import { useSubscription } from '../context/SubscriptionContext';
 
 export const BlockOverlay: React.FC = () => {
-  const { isBlocked, setIsBillingOpen, refreshStatus } = useSubscription();
+  const { isBlocked, refreshStatus } = useSubscription();
 
   if (!isBlocked) {
     return null;
@@ -36,34 +36,25 @@ export const BlockOverlay: React.FC = () => {
           </h2>
         </div>
 
-        {/* Polite but firm required message */}
+        {/* Message */}
         <div className="p-4 rounded-2xl bg-neutral-950/80 border border-neutral-800 text-neutral-300 text-sm sm:text-base leading-relaxed text-right space-y-2">
           <p className="font-semibold text-neutral-200">
-            مدت زمان اشتراک شما به پایان رسیده است. لطفاً جهت تمدید و بازگشایی دسترسی، اقدام به پرداخت نموده و منتظر تایید ادمین بمانید.
+            مدت زمان اشتراک شما به پایان رسیده است. لطفاً جهت تمدید با مدیریت سیستم تماس بگیرید.
           </p>
           <p className="text-xs text-neutral-400 font-normal">
-            کلیه درخواست‌های ثبت بارنامه، استعلام پلاک و ارسال باربرگ تا زمان ثبت تأییدیه مالی توسط واحد مدیریت کل غیرفعال می‌باشند.
+            کلیه درخواست‌های ثبت بارنامه، استعلام پلاک و ارسال باربرگ تا زمان تمدید اشتراک توسط ادمین غیرفعال می‌باشند.
           </p>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Button */}
         <div className="space-y-3 pt-2">
-          <button
-            type="button"
-            onClick={() => setIsBillingOpen(true)}
-            className="w-full py-3.5 px-6 rounded-2xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-xl shadow-orange-950/60 cursor-pointer active:scale-[0.98]"
-          >
-            <CreditCard className="w-5 h-5" />
-            <span>مشاهده راهنمای پرداخت و ثبت فیش</span>
-          </button>
-
           <button
             type="button"
             onClick={() => refreshStatus()}
             className="w-full py-2.5 px-4 rounded-xl bg-neutral-800 hover:bg-neutral-700/80 text-neutral-300 font-bold text-xs flex items-center justify-center gap-2 transition-all border border-neutral-700 cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>بررسی وضعیت تایید ادمین (بروزرسانی)</span>
+            <span>بررسی وضعیت تمدید (بروزرسانی)</span>
           </button>
         </div>
 

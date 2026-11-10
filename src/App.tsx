@@ -33,7 +33,6 @@ import { RoundTripWaybillModal } from './components/RoundTripWaybillModal';
 import { SettingsView } from './components/SettingsView';
 import { AddDriver } from './components/AddDriver';
 import { BlockOverlay } from './components/BlockOverlay';
-import { BillingModal } from './components/BillingModal';
 import { CreateUserPanel } from './components/admin/CreateUserPanel';
 import { toPersianDigits } from './lib/iranPlate';
 import { CheckCircle2, ArrowRight } from 'lucide-react';
@@ -671,7 +670,6 @@ export default function App() {
   return (
     <>
       <BlockOverlay />
-      <BillingModal />
       <AppLayout
         currentTab={safeTab}
         onSelectTab={tab => {

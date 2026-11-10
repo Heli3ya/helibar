@@ -12,16 +12,27 @@ import {
   Ban,
   CheckCircle2,
   Loader2,
+  Zap,
 } from 'lucide-react';
 import { toPersianDigits } from '../../lib/iranPlate';
 import { EditCapacityModal, SupportUserItem } from './EditCapacityModal';
 import { DeleteUserModal } from './DeleteUserModal';
+
+// Compute days left from created_at (30-day cycle)
+function getDaysLeft(createdAt?: string): number {
+  if (!createdAt) return 30;
+  const createdTime = new Date(createdAt).getTime();
+  if (isNaN(createdTime)) return 30;
+  const elapsedDays = Math.floor((Date.now() - createdTime) / (1000 * 60 * 60 * 24));
+  return Math.max(0, 30 - elapsedDays);
+}
 
 interface UserListProps {
   users: SupportUserItem[];
   onCapacityUpdated: (userId: string, newCapacity: number, message: string) => void;
   onUserDeleted: (userId: string, message: string) => void;
   onToggleAccess?: (userId: string, isActive: boolean, message: string) => void;
+  onUserRenewed?: (userId: string, message: string) => void;
   isLoading?: boolean;
 }
 
@@ -30,12 +41,14 @@ export const UserList: React.FC<UserListProps> = ({
   onCapacityUpdated,
   onUserDeleted,
   onToggleAccess,
+  onUserRenewed,
   isLoading = false,
 }) => {
   const [selectedUserForCapacity, setSelectedUserForCapacity] = useState<SupportUserItem | null>(null);
   const [userToDelete, setUserToDelete] = useState<SupportUserItem | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isTogglingId, setIsTogglingId] = useState<string | null>(null);
+  const [isRenewingId, setIsRenewingId] = useState<string | null>(null);
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard?.writeText(text);
@@ -72,6 +85,38 @@ export const UserList: React.FC<UserListProps> = ({
       alert(err.message || 'خطا در برقراری ارتباط با سرور.');
     } finally {
       setIsTogglingId(null);
+    }
+  };
+
+  const handleRenewSubscription = async (user: SupportUserItem) => {
+    if (isRenewingId) return;
+    setIsRenewingId(user.id);
+    try {
+      const token =
+        localStorage.getItem('helibar_auth_token') ||
+        localStorage.getItem('bargooo_auth_token') ||
+        'jwt_token_admin';
+
+      const res = await fetch(`/api/admin/users/${user.id}/approve-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || 'خطا در تمدید اشتراک کاربر.');
+      }
+
+      if (onUserRenewed) {
+        onUserRenewed(user.id, data.message);
+      }
+    } catch (err: any) {
+      alert(err.message || 'خطا در برقراری ارتباط با سرور.');
+    } finally {
+      setIsRenewingId(null);
     }
   };
 
@@ -204,22 +249,59 @@ export const UserList: React.FC<UserListProps> = ({
 
                   {/* Access Status: Active vs Suspended */}
                   <td className="py-3 px-3 text-center">
-                    {u.is_active !== false ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>فعال</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30 animate-pulse">
-                        <Ban className="w-3 h-3" />
-                        <span>مسدود (عدم دسترسی)</span>
-                      </span>
-                    )}
+                    {(() => {
+                      const daysLeft = getDaysLeft(u.created_at);
+                      const isExpired = daysLeft <= 0;
+                      if (u.is_active === false) {
+                        return (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30 animate-pulse">
+                            <Ban className="w-3 h-3" />
+                            <span>مسدود (عدم دسترسی)</span>
+                          </span>
+                        );
+                      }
+                      if (isExpired) {
+                        return (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                            <Ban className="w-3 h-3" />
+                            <span>اشتراک منقضی</span>
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>فعال ({toPersianDigits(daysLeft)} روز)</span>
+                        </span>
+                      );
+                    })()}
                   </td>
 
-                  {/* Actions: Edit Capacity + Suspend Access + Delete Account */}
+                  {/* Actions: Renew + Edit Capacity + Suspend Access + Delete Account */}
                   <td className="py-3 px-3 text-center">
                     <div className="inline-flex items-center gap-1.5 justify-center flex-wrap">
+                      {/* Renew Subscription Button (only when expired) */}
+                      {u.role !== 'DRIVER' && u.is_active !== false && (() => {
+                        const daysLeft = getDaysLeft(u.created_at);
+                        if (daysLeft > 0) return null;
+                        return (
+                          <button
+                            type="button"
+                            disabled={isRenewingId === u.id}
+                            onClick={() => handleRenewSubscription(u)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500 text-emerald-400 hover:text-black font-bold text-xs border border-emerald-500/30 transition cursor-pointer active:scale-95 disabled:opacity-50"
+                            title="وصل مجدد اشتراک صادرکننده"
+                          >
+                            {isRenewingId === u.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Zap className="w-3.5 h-3.5" />
+                            )}
+                            <span>وصل مجدد</span>
+                          </button>
+                        );
+                      })()}
+
                       {/* Edit Capacity Button (for SUPPORT) */}
                       {u.role !== 'DRIVER' && (
                         <button

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Clock, CreditCard, ChevronLeft } from 'lucide-react';
+import { AlertTriangle, Clock } from 'lucide-react';
 import { useSubscription, SubscriptionWarningType } from '../context/SubscriptionContext';
 import { toPersianDigits } from '../lib/iranPlate';
 import { AuthUser } from '../types';
@@ -19,11 +19,11 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
   overrideState,
   currentUser: propUser,
 }) => {
-  const { warningType: contextWarning, daysLeft, isBlocked, setIsBillingOpen } = useSubscription();
+  const { warningType: contextWarning, daysLeft, isBlocked } = useSubscription();
 
   const activeWarning = overrideState !== undefined ? overrideState : contextWarning;
 
-  // Retrieve current active user to enforce isolation (only show for user whose subscription is expiring)
+  // Retrieve current active user to enforce isolation
   const activeUser: AuthUser | null = propUser || (() => {
     try {
       const saved = localStorage.getItem('sipaad_issuer_user');
@@ -33,14 +33,11 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
     }
   })();
 
-  // If panel is completely blocked, full-screen BlockOverlay handles it.
-  // Admins do NOT have expiring subscriptions. Banner only shows for SUPPORT / Client accounts.
   if (isBlocked || !activeUser || activeUser.role === 'ADMIN') {
     return null;
   }
 
-  // 1. Critical Warning: days_left <= 7 (Orange/Red alert banner at absolute top of dashboard)
-  // Required exact copy: "کاربر گرامی، کمتر از یک هفته تا پایان اشتراک شما باقی مانده است. لطفا جهت تمدید اقدام نمایید."
+  // Critical Warning: days_left <= 7
   const isExpiringWithin7Days = (daysLeft !== null && daysLeft <= 7) || activeWarning === '7_DAYS_BLINKING';
 
   if (isExpiringWithin7Days) {
@@ -67,24 +64,12 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
               )}
             </div>
           </div>
-
-          <div className="flex items-center gap-2 mr-auto shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsBillingOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-black hover:bg-neutral-900 text-amber-300 border border-amber-400/40 font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95 shadow-xs"
-            >
-              <CreditCard className="w-4 h-4 text-orange-400" />
-              <span>تمدید فوری اشتراک</span>
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          </div>
         </div>
       </div>
     );
   }
 
-  // 2. Medium Warning: 14_DAYS (Static, elegant orange banner)
+  // Medium Warning: 14_DAYS
   if (activeWarning === '14_DAYS' || (daysLeft !== null && daysLeft <= 14 && daysLeft > 7)) {
     return (
       <div
@@ -107,17 +92,6 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
                 </span>
               )}
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 mr-auto shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsBillingOpen(true)}
-              className="px-3 py-1 rounded-lg bg-black hover:bg-neutral-900 text-orange-400 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
-            >
-              <span>مشاهده صورت‌حساب</span>
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
           </div>
         </div>
       </div>

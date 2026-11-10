@@ -26,7 +26,7 @@
     "mobile": "09192974529",
     "plateCapacity": 550,
     "isActive": true,
-    "createdAt": "2026-09-27T15:51:23.873Z",
+    "createdAt": "2026-11-10T20:42:27.881Z",
     "nationalId": "4522551125",
     "address": "قزوین-خیابان پونک - کوچه امیبرکبیر12",
     "provinceCity": "قزوین / قزوین"
@@ -202,5 +202,15 @@
     "mobile": "09124451092",
     "isActive": true,
     "createdAt": "2026-09-27T17:49:34.887Z"
+  },
+  {
+    "id": "usr-drv-4503",
+    "username": "4646653232",
+    "passwordHash": "Driver@1404",
+    "role": "DRIVER",
+    "fullName": "راننده کد 3232",
+    "mobile": "09122293075",
+    "isActive": true,
+    "createdAt": "2026-11-10T20:43:24.503Z"
   }
 ]

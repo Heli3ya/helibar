@@ -4,7 +4,6 @@ import { toPersianDigits } from '../lib/iranPlate';
 import { CapacityBadge } from './CapacityBadge';
 import { ThemeToggleMinimal } from './ThemeToggleMinimal';
 import { useSubscription } from '../context/SubscriptionContext';
-import { BillingModal } from './BillingModal';
 import { GlobalBackButton } from './GlobalBackButton';
 import {
   Menu,
@@ -12,7 +11,6 @@ import {
   User,
   ChevronDown,
   LogOut,
-  CreditCard,
 } from 'lucide-react';
 
 /**
@@ -102,7 +100,6 @@ export const Header: React.FC<HeaderProps> = ({
   maxPlateCapacity = 150,
 }) => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [isBillingOpen, setIsBillingOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { daysLeft } = useSubscription();
 
@@ -276,12 +273,6 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Subscription Billing Modal */}
-      <BillingModal
-        isOpen={isBillingOpen}
-        onClose={() => setIsBillingOpen(false)}
-        currentUser={currentUser}
-      />
     </header>
   );
 };

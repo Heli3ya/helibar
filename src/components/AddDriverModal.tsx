@@ -15,7 +15,6 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
-  Sparkles,
 } from 'lucide-react';
 
 export interface DriverValidatedData {
@@ -127,29 +126,6 @@ export const AddDriverModal: React.FC<AddDriverModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleUseVerifiedCarrier = () => {
-    setValidatedData({
-      first_name: 'غفور',
-      last_name: 'هلیچی',
-      driver_name: 'غفور هلیچی',
-      national_id: nationalId.trim() || '4310494171',
-      plate_number: '54 ع 381 - 14',
-      vehicle_type: 'وانت بار شهری (نیسان)',
-      plate_details: {
-        part1: '54',
-        letter: 'ع',
-        part2: '381',
-        provinceCode: '14',
-        type: 'public',
-      },
-      mobile: '09163004171',
-      smart_card_number: 'DRV-43104941',
-      tonnage_kg: 2200,
-    });
-    setErrorMessage(null);
-    setStep('preview');
   };
 
   // STEP 2 HANDLER: Confirm & Finalize Registration (Strictly protected against Double Submit)
@@ -308,24 +284,9 @@ export const AddDriverModal: React.FC<AddDriverModalProps> = ({
 
         {/* Error Alert Box */}
         {errorMessage && (
-          <div className="mb-4 space-y-2 animate-in fade-in duration-200">
-            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/50 text-rose-600 dark:text-rose-300 text-xs font-medium flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
-              <div className="leading-relaxed flex-1">{errorMessage}</div>
-            </div>
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700/50 text-xs flex flex-col sm:flex-row items-center justify-between gap-2.5">
-              <span className="text-[11px] text-amber-800 dark:text-amber-300">
-                جهت تست بدون وقفه تا زمان تایید آی‌پی در فایروال barname.utcms.ir:
-              </span>
-              <button
-                type="button"
-                onClick={handleUseVerifiedCarrier}
-                className="w-full sm:w-auto px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors shrink-0"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>ادامه با مشخصات باربر</span>
-              </button>
-            </div>
+          <div className="mb-4 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/50 text-rose-600 dark:text-rose-300 text-xs font-medium flex items-start gap-2.5 animate-in fade-in duration-200">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
+            <div className="leading-relaxed">{errorMessage}</div>
           </div>
         )}
 
@@ -428,22 +389,12 @@ export const AddDriverModal: React.FC<AddDriverModalProps> = ({
         {/* ========================================================================= */}
         {step === 'preview' && validatedData && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            {/* Simulation or Firewall Notice Banner */}
-            {(validatedData as any).is_firewall_fallback && (
-              <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-300 dark:border-blue-700/60 text-blue-800 dark:text-blue-200 text-xs flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                <div className="leading-relaxed">
-                  <span className="font-bold">اطلاعیه استعلام: </span>
-                  {(validatedData as any).technical_guide || 'ارتباط زنده با سپاد به دلیل وایت‌لیست نبودن آی‌پی سرور تایم‌اوت داد. اطلاعات این راننده جهت ادامه فرآیند بارگذاری شد.'}
-                </div>
-              </div>
-            )}
-
-            {(validatedData as any).is_mock_simulation && !(validatedData as any).is_firewall_fallback && (
+            {/* Simulation Warning Banner if in Simulation Mode */}
+            {(validatedData as any).is_mock_simulation && (
               <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 <div className="leading-relaxed">
-                  <span className="font-bold">حالت آزمایشی (Simulation): </span>
+                  <span className="font-bold">حالت شبیه‌ساز (آزمایشی): </span>
                   {(validatedData as any).simulation_notice || 'جهت استعلام دیتای زنده از باربری، متغیر SIPAAD_MODE=live را در سرور فعال نمایید.'}
                 </div>
               </div>
@@ -459,7 +410,7 @@ export const AddDriverModal: React.FC<AddDriverModalProps> = ({
                     : 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400'
                 }`}>
                   <CheckCircle2 className="w-3 h-3" />
-                  {(validatedData as any).source?.startsWith('LIVE') ? 'استعلام زنده از سپاد' : 'احراز هویت باربر'}
+                  {(validatedData as any).source?.startsWith('LIVE') ? 'استعلام زنده از سپاد' : 'احراز هویت آزمایشی'}
                 </span>
               </div>
 
@@ -472,7 +423,7 @@ export const AddDriverModal: React.FC<AddDriverModalProps> = ({
                   <div>
                     <div className="text-[11px] text-gray-500 dark:text-gray-400">نام:</div>
                     <div className="text-xs font-bold text-gray-900 dark:text-white">
-                      {(validatedData as any).first_name || (validatedData.driver_name ? validatedData.driver_name.split(' ')[0] : 'راننده')}
+                      {(validatedData as any).first_name || validatedData.driver_name.split(' ')[0] || 'محمدجواد'}
                     </div>
                   </div>
                 </div>
@@ -480,7 +431,7 @@ export const AddDriverModal: React.FC<AddDriverModalProps> = ({
                 <div>
                   <div className="text-[11px] text-gray-500 dark:text-gray-400">نام خانوادگی:</div>
                   <div className="text-xs font-bold text-gray-900 dark:text-white">
-                    {(validatedData as any).last_name || (validatedData.driver_name ? validatedData.driver_name.split(' ').slice(1).join(' ') : '')}
+                    {(validatedData as any).last_name || validatedData.driver_name.split(' ').slice(1).join(' ') || 'اصغری'}
                   </div>
                 </div>
 

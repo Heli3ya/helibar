@@ -5,20 +5,9 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'node:crypto';
-import dns from 'node:dns';
 import multer from 'multer';
 import * as XLSX from 'xlsx';
 import { createServer as createViteServer } from 'vite';
-
-// Configure DNS resolvers to reliably resolve Iranian .ir domains like barname.utcms.ir and services2.sipaad.ir
-try {
-  dns.setServers(['217.218.155.155', '217.218.127.127', '178.22.122.100', '185.51.200.2', '8.8.8.8', '1.1.1.1']);
-} catch (e) {
-  console.warn('[DNS Config] Could not set custom DNS servers:', e);
-}
-
-// Disable strict TLS verification for internal Iranian governmental web services
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 const app = express();
 const PORT = 3000;
@@ -937,6 +926,44 @@ if (!fs.existsSync(DATA_DIR)) {
   } catch {}
 }
 
+// Excel/CSV Auto-Cleanup: Delete uploaded spreadsheet files older than 90 days (3 months)
+const EXCEL_CLEANUP_INTERVAL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
+const EXCEL_EXTENSIONS = ['.xlsx', '.xls', '.csv'];
+const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
+
+function cleanupOldExcelFiles() {
+  const now = Date.now();
+  const scanDirs = [UPLOADS_DIR, DATA_DIR, path.join(process.cwd(), 'public', 'templates')];
+
+  for (const dir of scanDirs) {
+    if (!fs.existsSync(dir)) continue;
+    try {
+      const files = fs.readdirSync(dir);
+      for (const file of files) {
+        const ext = path.extname(file).toLowerCase();
+        if (!EXCEL_EXTENSIONS.includes(ext)) continue;
+
+        const filePath = path.join(dir, file);
+        try {
+          const stat = fs.statSync(filePath);
+          const fileAgeMs = now - stat.mtimeMs;
+          if (fileAgeMs > EXCEL_CLEANUP_INTERVAL_MS) {
+            // Skip template files in public/templates (those are permanent)
+            if (dir === path.join(process.cwd(), 'public', 'templates')) continue;
+            fs.unlinkSync(filePath);
+            console.log(`[Excel Cleanup] Deleted stale file: ${filePath} (age: ${Math.round(fileAgeMs / (24 * 60 * 60 * 1000))} days)`);
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+}
+
+// Run cleanup on startup
+cleanupOldExcelFiles();
+// Run cleanup every 24 hours (checks for files older than 90 days)
+setInterval(cleanupOldExcelFiles, 24 * 60 * 60 * 1000);
+
 const USERS_FILE = path.join(DATA_DIR, 'system_users.json');
 const PLATES_FILE = path.join(DATA_DIR, 'plates.json');
 const ISSUER_SETTINGS_FILE = path.join(DATA_DIR, 'issuer_settings.json');
@@ -1800,10 +1827,10 @@ const sipaadLiveSettings: SipaadLiveSettings = {
   mode: (process.env.SIPAAD_MODE as 'live' | 'simulation') || 'simulation',
   companyCode: process.env.SIPAAD_COMPANY_CODE || '24981',
   companyPassword: process.env.SIPAAD_COMPANY_PASSWORD || '',
-  freighterWsUrl: process.env.SIPAAD_FREIGHTER_WS_URL || 'https://barname.utcms.ir/ITMFreighter.asmx',
-  bolWsUrl: process.env.SIPAAD_BOL_WS_URL || 'https://barname.utcms.ir/ITMBOL.asmx',
+  freighterWsUrl: process.env.SIPAAD_FREIGHTER_WS_URL || 'https://services2.sipaad.ir/ITMFreighter.asmx',
+  bolWsUrl: process.env.SIPAAD_BOL_WS_URL || 'https://services2.sipaad.ir/ITMBOL.asmx',
   protocol: (process.env.SIPAAD_PROTOCOL as 'SOAP' | 'REST') || 'SOAP',
-  timeoutMs: parseInt(process.env.SIPAAD_TIMEOUT_MS || '6000', 10),
+  timeoutMs: parseInt(process.env.SIPAAD_TIMEOUT_MS || '12000', 10),
 };
 
 // SHA512 signature generator for UTCMS municipal web service using UTF-16LE encoding
@@ -1832,12 +1859,9 @@ async function callRealSipaadDriverInquiry(nationalId: string, driverPassword: s
   error?: string;
   errorCode?: string | number;
   rawDetails?: any;
-  isFirewallBlocked?: boolean;
 }> {
   const companyCode = sipaadLiveSettings.companyCode;
   const { salt, hashedValue } = GetSipaadSha512Utf16Hash(companyCode, driverPassword);
-
-  const timeoutDuration = Math.min(sipaadLiveSettings.timeoutMs || 4000, 5000);
 
   if (sipaadLiveSettings.protocol === 'SOAP') {
     // Standard SOAP 1.1 Envelope for WS21_GetRegisterUserInfo
@@ -1853,129 +1877,106 @@ async function callRealSipaadDriverInquiry(nationalId: string, driverPassword: s
   </soap:Body>
 </soap:Envelope>`;
 
-    const urlsToTry = [
-      sipaadLiveSettings.freighterWsUrl,
-      'https://barname.utcms.ir/ITMFreighter.asmx',
-      'https://services2.sipaad.ir/ITMFreighter.asmx',
-      'https://185.173.168.105/ITMFreighter.asmx',
-    ];
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), sipaadLiveSettings.timeoutMs);
 
-    let lastError: any = null;
+    try {
+      const response = await fetch(sipaadLiveSettings.freighterWsUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          'SOAPAction': '"http://tempuri.org/WS21_GetRegisterUserInfo"',
+          'User-Agent': 'HeliBar-Logistics-Platform/2.4',
+        },
+        body: soapEnvelope,
+        signal: controller.signal,
+      });
 
-    for (const targetUrl of urlsToTry) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), timeoutDuration);
+      clearTimeout(timeout);
+      const xmlText = await response.text();
 
-      try {
-        let hostHeader = 'barname.utcms.ir';
-        try {
-          hostHeader = new URL(targetUrl).hostname;
-          if (hostHeader === '185.173.168.105') hostHeader = 'barname.utcms.ir';
-        } catch {}
-
-        const response = await fetch(targetUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/xml; charset=utf-8',
-            'SOAPAction': '"http://tempuri.org/WS21_GetRegisterUserInfo"',
-            'Host': hostHeader,
-            'User-Agent': 'HeliBar-Logistics-Platform/2.4',
-          },
-          body: soapEnvelope,
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeout);
-        const xmlText = await response.text();
-
-        // Check HTTP error status
-        if (!response.ok) {
-          const faultString = extractXmlTag(xmlText, 'faultstring') || extractXmlTag(xmlText, 'faultcode');
-          return {
-            success: false,
-            errorCode: response.status,
-            error: `خطای وب‌سرویس سپاد (${response.status}): ${faultString || 'عدم پاسخ مناسب از سرور'}`,
-            rawDetails: xmlText.slice(0, 500),
-          };
-        }
-
-        // Check Application-level ErrorCode in XML
-        const rawErrorCode = extractXmlTag(xmlText, 'ErrorCode') || extractXmlTag(xmlText, 'ResultCode');
-        const rawErrorDesc = extractXmlTag(xmlText, 'ErrorDesc') || extractXmlTag(xmlText, 'ResultMessage');
-
-        if (rawErrorCode && rawErrorCode !== '0' && rawErrorCode !== '200') {
-          return {
-            success: false,
-            errorCode: rawErrorCode,
-            error: rawErrorDesc || `خطای سامانه سپاد (کد ${rawErrorCode})`,
-          };
-        }
-
-        // Extract real driver fields from XML response
-        const fullName = extractXmlTag(xmlText, 'FullName');
-        const firstName = extractXmlTag(xmlText, 'FirstName') || (fullName ? fullName.split(' ')[0] : 'راننده');
-        const lastName = extractXmlTag(xmlText, 'LastName') || (fullName ? fullName.split(' ').slice(1).join(' ') : nationalId);
-        const mobileNumber = extractXmlTag(xmlText, 'MobileNumber') || extractXmlTag(xmlText, 'Mobile');
-        const smartCardNumber = extractXmlTag(xmlText, 'SmartCardNumber') || extractXmlTag(xmlText, 'CardNumber');
-        const licenseNumber = extractXmlTag(xmlText, 'LicenseNumber');
-
-        // Extract vehicle fields
-        const p1 = extractXmlTag(xmlText, 'PlatePart1') || '58';
-        const letter = extractXmlTag(xmlText, 'PlateLetter') || 'ع';
-        const p2 = extractXmlTag(xmlText, 'PlatePart2') || '412';
-        const prov = extractXmlTag(xmlText, 'PlateProvince') || '11';
-        const vehicleType = extractXmlTag(xmlText, 'VehicleType') || 'وانت بار شهری';
-        const tonnageKg = parseInt(extractXmlTag(xmlText, 'TonnageKg') || '2200', 10);
-
-        const formattedPlate = `${p1} ${letter} ${p2} - ${prov}`;
-
+      // Check HTTP error status
+      if (!response.ok) {
+        // Inspect SOAP Fault
+        const faultString = extractXmlTag(xmlText, 'faultstring') || extractXmlTag(xmlText, 'faultcode');
         return {
-          success: true,
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            driver_name: fullName || `${firstName} ${lastName}`.trim(),
-            national_id: nationalId,
-            plate_number: formattedPlate,
-            vehicle_type: vehicleType,
-            plate_details: {
-              part1: p1,
-              letter: letter,
-              part2: p2,
-              provinceCode: prov,
-              type: letter === 'ع' ? 'public' : 'commercial',
-            },
-            mobile: mobileNumber || '09120000000',
-            smart_card_number: smartCardNumber || `DRV-${nationalId.slice(-6)}`,
-            license_number: licenseNumber,
-            tonnage_kg: tonnageKg,
-            security_signature: { salt, hash_prefix: hashedValue.slice(0, 12) },
-            source: 'LIVE_SIPAAD_SOAP',
-          },
+          success: false,
+          errorCode: response.status,
+          error: `خطای سرور وب‌سرویس سپاد (کد ${response.status}): ${faultString || 'پاسخ نامعتبر از سرور باربری'}`,
+          rawDetails: xmlText.slice(0, 500),
         };
-      } catch (err: any) {
-        clearTimeout(timeout);
-        lastError = err;
-        // Continue to try fallback IP URL if DNS failed
       }
+
+      // Check Application-level ErrorCode in XML
+      const rawErrorCode = extractXmlTag(xmlText, 'ErrorCode') || extractXmlTag(xmlText, 'ResultCode');
+      const rawErrorDesc = extractXmlTag(xmlText, 'ErrorDesc') || extractXmlTag(xmlText, 'ResultMessage');
+
+      if (rawErrorCode && rawErrorCode !== '0' && rawErrorCode !== '200') {
+        return {
+          success: false,
+          errorCode: rawErrorCode,
+          error: rawErrorDesc || `خطای سامانه سپاد (کد ${rawErrorCode})`,
+        };
+      }
+
+      // Extract real driver fields from XML response
+      const fullName = extractXmlTag(xmlText, 'FullName');
+      const firstName = extractXmlTag(xmlText, 'FirstName') || (fullName ? fullName.split(' ')[0] : 'راننده');
+      const lastName = extractXmlTag(xmlText, 'LastName') || (fullName ? fullName.split(' ').slice(1).join(' ') : nationalId);
+      const mobileNumber = extractXmlTag(xmlText, 'MobileNumber') || extractXmlTag(xmlText, 'Mobile');
+      const smartCardNumber = extractXmlTag(xmlText, 'SmartCardNumber') || extractXmlTag(xmlText, 'CardNumber');
+      const licenseNumber = extractXmlTag(xmlText, 'LicenseNumber');
+
+      // Extract vehicle fields
+      const p1 = extractXmlTag(xmlText, 'PlatePart1') || '58';
+      const letter = extractXmlTag(xmlText, 'PlateLetter') || 'ع';
+      const p2 = extractXmlTag(xmlText, 'PlatePart2') || '412';
+      const prov = extractXmlTag(xmlText, 'PlateProvince') || '11';
+      const vehicleType = extractXmlTag(xmlText, 'VehicleType') || 'وانت بار';
+      const tonnageKg = parseInt(extractXmlTag(xmlText, 'TonnageKg') || '2200', 10);
+
+      const formattedPlate = `${p1} ${letter} ${p2} - ${prov}`;
+
+      return {
+        success: true,
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          driver_name: fullName || `${firstName} ${lastName}`.trim(),
+          national_id: nationalId,
+          plate_number: formattedPlate,
+          vehicle_type: vehicleType,
+          plate_details: {
+            part1: p1,
+            letter: letter,
+            part2: p2,
+            provinceCode: prov,
+            type: letter === 'ع' ? 'public' : 'commercial',
+          },
+          mobile: mobileNumber || '09120000000',
+          smart_card_number: smartCardNumber || `DRV-${nationalId.slice(-6)}`,
+          license_number: licenseNumber,
+          tonnage_kg: tonnageKg,
+          security_signature: { salt, hash_prefix: hashedValue.slice(0, 12) },
+          source: 'LIVE_SIPAAD_SOAP',
+        },
+      };
+    } catch (err: any) {
+      clearTimeout(timeout);
+      const errMsg = err?.name === 'AbortError'
+        ? `مهلت زمان ارتباط با سرور سپاد (${sipaadLiveSettings.timeoutMs}ms) به پایان رسید (Timeout). احتمالاً آی‌پی سرور شما در فایروال سپاد مجاز (Whitelist) نشده است.`
+        : `عدم برقراری ارتباط شبکه با وب‌سرویس سپاد: ${err?.message || err}. لطفاً بررسی نمایید پورت و آدرس وب‌سرویس در دسترس باشد.`;
+      return {
+        success: false,
+        errorCode: 'NETWORK_FAILURE',
+        error: errMsg,
+      };
     }
-
-    const isTimeout = lastError?.name === 'AbortError' || lastError?.name === 'TimeoutError';
-    const errMsg = isTimeout
-      ? `مهلت زمان ارتباط با سرور سپاد به پایان رسید (Timeout). وب‌سرویس‌های سپاد فقط به آی‌پی‌های وایت‌لیست شده داخل شبکه ملی پاسخ می‌دهند.`
-      : `عدم برقراری ارتباط شبکه با وب‌سرویس سپاد: ${lastError?.message || lastError}`;
-
-    return {
-      success: false,
-      errorCode: 'NETWORK_FAILURE',
-      isFirewallBlocked: true,
-      error: errMsg,
-    };
   } else {
     // REST / JSON Gateway
     const endpoint = `${sipaadLiveSettings.freighterWsUrl.replace(/\/$/, '')}/WS21_GetRegisterUserInfo`;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutDuration);
+    const timeout = setTimeout(() => controller.abort(), sipaadLiveSettings.timeoutMs);
 
     try {
       const response = await fetch(endpoint, {
@@ -2038,7 +2039,6 @@ async function callRealSipaadDriverInquiry(nationalId: string, driverPassword: s
       return {
         success: false,
         errorCode: 'NETWORK_FAILURE',
-        isFirewallBlocked: true,
         error: `خطا در فراخوانی REST وب‌سرویس سپاد: ${err?.message || err}`,
       };
     }
@@ -2055,42 +2055,7 @@ app.get('/api/sipaad/live-config', (req, res) => {
     protocol: sipaadLiveSettings.protocol,
     timeoutMs: sipaadLiveSettings.timeoutMs,
     isLiveConfigured: sipaadLiveSettings.mode === 'live',
-    notes: 'برای اتصال زنده واقعی به سامانه باربرگ شهرداری (barname.utcms.ir)، مطمئن شوید آی‌پی سرور شما در سامانه وایت‌لیست (مجاز) شده باشد.',
-  });
-});
-
-let cachedServerIp: string | null = null;
-let lastIpCheckTime = 0;
-
-async function detectPublicIpServer(): Promise<string> {
-  if (cachedServerIp && Date.now() - lastIpCheckTime < 300000) {
-    return cachedServerIp;
-  }
-  try {
-    const ipRes = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
-    if (ipRes.ok) {
-      const data: any = await ipRes.json();
-      cachedServerIp = data.ip;
-      lastIpCheckTime = Date.now();
-      return data.ip;
-    }
-  } catch {}
-  return cachedServerIp || 'مشخص‌نشده';
-}
-
-// Dedicated endpoint to return Public IP and barname.utcms.ir Whitelist instructions
-app.get('/api/sipaad/server-ip', async (req, res) => {
-  const serverIp = await detectPublicIpServer();
-  res.json({
-    serverIp,
-    officialPortal: 'https://barname.utcms.ir/',
-    officialEndpoints: {
-      freighter: sipaadLiveSettings.freighterWsUrl,
-      bol: sipaadLiveSettings.bolWsUrl,
-      directGovernmentIp: '185.173.168.105',
-    },
-    companyCode: sipaadLiveSettings.companyCode,
-    whitelistTicketDraft: `با سلام، تقاضای ثبت آی‌پی استاتیک سرور ${serverIp} متعلق به شرکت هلی‌بار (helibar.ir) با کد صادرکننده ${sipaadLiveSettings.companyCode} در لیست سفید فایروال وب‌سرویس سامانه بارنامه شهری (barname.utcms.ir) را دارم.`,
+    notes: 'برای اتصال زنده واقعی به سامانه باربرگ شهرداری، مطمئن شوید آی‌پی سرور شما در سامانه سپاد وایت‌لیست (مجاز) شده باشد.',
   });
 });
 
@@ -2176,41 +2141,8 @@ app.post('/api/drivers/validate', async (req, res) => {
     if (liveResult.success && liveResult.data) {
       return res.json(liveResult.data);
     } else {
-      console.warn(`[SIPAAD LIVE FAILED] Error: ${liveResult.error} (Code: ${liveResult.errorCode})`);
-
-      // Special fallback for carrier test national code (4310494171) if governmental firewall blocks IP
-      if (cleanNatId === '4310494171') {
-        const companyCode = sipaadLiveSettings.companyCode;
-        const { salt, hashedValue } = GetSipaadSha512Utf16Hash(companyCode, cleanPass);
-        return res.json({
-          first_name: 'غفور',
-          last_name: 'هلیچی',
-          driver_name: 'غفور هلیچی',
-          national_id: cleanNatId,
-          plate_number: '54 ع 381 - 14',
-          vehicle_type: 'وانت بار شهری (نیسان)',
-          plate_details: {
-            part1: '54',
-            letter: 'ع',
-            part2: '381',
-            provinceCode: '14',
-            type: 'public',
-          },
-          mobile: '09163004171',
-          smart_card_number: 'DRV-43104941',
-          license_number: 'LIC-43104941',
-          tonnage_kg: 2200,
-          security_signature: {
-            salt,
-            hash_prefix: hashedValue.slice(0, 12),
-          },
-          source: 'VERIFIED_CARRIER_TEST',
-          is_firewall_fallback: true,
-          technical_guide: 'ارتباط مستقیم با وب‌سرویس سپاد به دلیل وایت‌لیست نبودن آی‌پی سرور در فایروال سپاد تایم‌اوت داد. اطلاعات این راننده جهت ادامه فرآیند بارگذاری شد. جهت اتصال زنده ۱۰۰٪، آی‌پی سرور خود را در فایروال سپاد ثبت نمایید.',
-        });
-      }
-
       // Return the REAL governmental error directly to dispatcher
+      console.warn(`[SIPAAD LIVE FAILED] Error: ${liveResult.error} (Code: ${liveResult.errorCode})`);
       return res.status(400).json({
         error_code: liveResult.errorCode || 'SIPAAD_LIVE_ERROR',
         detail: liveResult.error || 'خطا در ارتباط با وب‌سرویس رسمی سپاد',
@@ -2225,58 +2157,25 @@ app.post('/api/drivers/validate', async (req, res) => {
   const companyCode = sipaadLiveSettings.companyCode;
   const { salt, hashedValue } = GetSipaadSha512Utf16Hash(companyCode, cleanPass);
 
-  let firstName = 'غفور';
-  let lastName = 'هلیچی';
-  let formattedPlate = '54 ع 381 - 14';
-  let plateDetails = {
-    part1: '54',
-    letter: 'ع',
-    part2: '381',
-    provinceCode: '14',
-    type: 'public',
-  };
-  let mobileNum = '09163004171';
-  let smartCardNum = 'DRV-43104941';
-  let vehicleType = 'وانت بار شهری (نیسان)';
-
-  if (cleanNatId === '4310494171') {
-    firstName = 'غفور';
-    lastName = 'هلیچی';
-    formattedPlate = '54 ع 381 - 14';
-    plateDetails = { part1: '54', letter: 'ع', part2: '381', provinceCode: '14', type: 'public' };
-    mobileNum = '09163004171';
-    smartCardNum = 'DRV-43104941';
-    vehicleType = 'وانت بار شهری (نیسان)';
-  } else if (cleanNatId === '0078192341') {
+  let firstName = 'محمدجواد';
+  let lastName = 'اصغری';
+  if (cleanNatId === '0078192341') {
     firstName = 'محمدجواد';
     lastName = 'اصغری';
-    formattedPlate = '43 ع 789 - 77';
-    plateDetails = { part1: '43', letter: 'ع', part2: '789', provinceCode: '77', type: 'public' };
-    mobileNum = '09124451092';
-    smartCardNum = 'DRV-881923';
-    vehicleType = 'وانت نیسان';
   } else if (cleanNatId === '0451928374') {
     firstName = 'رضا';
     lastName = 'کمالی راد';
-    formattedPlate = '18 ع 215 - 22';
-    plateDetails = { part1: '18', letter: 'ع', part2: '215', provinceCode: '22', type: 'public' };
-    mobileNum = '09193301284';
-    smartCardNum = 'DRV-774019';
-    vehicleType = 'کامیونت ایسوزو';
   } else {
     firstName = 'راننده';
     lastName = `کد ${cleanNatId.slice(-4)}`;
-    const p1 = (40 + (parseInt(cleanNatId.slice(-2), 10) || 12) % 50).toString().padStart(2, '0');
-    const letter = 'ع';
-    const p2 = (300 + (parseInt(cleanNatId.slice(-3), 10) || 215) % 600).toString().padStart(3, '0');
-    const province = (11 + (parseInt(cleanNatId.slice(-1), 10) || 0) * 11).toString();
-    formattedPlate = `${p1} ${letter} ${p2} - ${province}`;
-    plateDetails = { part1: p1, letter: letter, part2: p2, provinceCode: province, type: 'public' };
-    mobileNum = `0912${Math.floor(1000000 + Math.random() * 8999999)}`;
-    smartCardNum = `DRV-${cleanNatId.slice(-6)}`;
-    vehicleType = 'وانت نیسان';
   }
   const driverFullName = `${firstName} ${lastName}`;
+
+  const p1 = (40 + (parseInt(cleanNatId.slice(-2), 10) || 12) % 50).toString().padStart(2, '0');
+  const letter = 'ع';
+  const p2 = (300 + (parseInt(cleanNatId.slice(-3), 10) || 215) % 600).toString().padStart(3, '0');
+  const province = (11 + (parseInt(cleanNatId.slice(-1), 10) || 0) * 11).toString();
+  const formattedPlate = `${p1} ${letter} ${p2} - ${province}`;
 
   // Preview object with explicit notice that simulation mode is active
   res.json({
@@ -2285,10 +2184,16 @@ app.post('/api/drivers/validate', async (req, res) => {
     driver_name: driverFullName,
     national_id: cleanNatId,
     plate_number: formattedPlate,
-    vehicle_type: vehicleType,
-    plate_details: plateDetails,
-    mobile: mobileNum,
-    smart_card_number: smartCardNum,
+    vehicle_type: 'وانت نیسان',
+    plate_details: {
+      part1: p1,
+      letter: letter,
+      part2: p2,
+      provinceCode: province,
+      type: 'public',
+    },
+    mobile: `0912${Math.floor(1000000 + Math.random() * 8999999)}`,
+    smart_card_number: `DRV-${cleanNatId.slice(-6)}`,
     tonnage_kg: 2200,
     security_signature: {
       salt,
@@ -2845,16 +2750,23 @@ app.post('/api/subscription/set-demo', (req, res) => {
 // Admin Approval Endpoint: POST /api/admin/users/:user_id/approve-payment
 app.post('/api/admin/users/:user_id/approve-payment', (req, res) => {
   const { user_id } = req.params;
+
+  // Reset the target user's subscription by updating their createdAt to now
+  const targetUser = systemUsersStore.find(u => u.id === user_id || u.username === user_id);
+  if (targetUser) {
+    targetUser.createdAt = new Date().toISOString();
+    saveUsersToDisk();
+  }
+
   isPaymentApproved = true;
-  // Extends subscription by exactly 1 Jalali month (~30/31 days)
   subscriptionDaysLeft = Math.max(subscriptionDaysLeft, 0) + 30;
 
   res.json({
     status: 'success',
     message: 'پرداخت با موفقیت تأیید شد و اشتراک کاربر به مدت ۱ ماه جلالی تمدید گردید.',
-    user_id,
+    user_id: targetUser?.id || user_id,
     is_payment_approved: true,
-    days_left: subscriptionDaysLeft,
+    days_left: 30,
     approved_by: 'heliya',
   });
 });
@@ -3025,6 +2937,7 @@ app.get('/api/admin/users/supports', (req, res) => {
       address: u.address || '',
       province_city: u.provinceCity || '',
       is_active: u.isActive !== false,
+      created_at: u.createdAt || new Date().toISOString(),
     }));
   res.json({ supports });
 });

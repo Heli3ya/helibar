@@ -575,40 +575,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Official barname.utcms.ir Gateway Integration Info */}
-          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
-                <Server className="w-4 h-4" />
-                آدرس‌های رسمی وب‌سرویس بارنامه شهری (barname.utcms.ir)
-              </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                پروتکل رسمی SOAP 1.1 / WCF
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
-              <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
-                <div className="text-slate-400">وب‌سرویس صدور سند حمل بار (ITMBOL):</div>
-                <div className="font-mono text-emerald-400 font-bold select-all text-xs" dir="ltr">
-                  https://barname.utcms.ir/ITMBOL.asmx
-                </div>
-              </div>
-
-              <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
-                <div className="text-slate-400">وب‌سرویس استعلام باربر و ناوگان (ITMFreighter):</div>
-                <div className="font-mono text-amber-400 font-bold select-all text-xs" dir="ltr">
-                  https://barname.utcms.ir/ITMFreighter.asmx
-                </div>
-              </div>
-            </div>
-
-            <div className="p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-300 leading-relaxed">
-              <span className="font-bold">شرط برقراری اتصال زنده: </span>
-              آی‌پی سرور سایت شما (helibar.ir) باید در پرتال مدیریت بارنامه شهری (barname.utcms.ir) در لیست سفید (Whitelist) قرار گرفته باشد و سرور در داخل ایران میزبانی شده باشد.
-            </div>
-          </div>
         </div>
       )}
 

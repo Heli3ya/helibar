@@ -92,6 +92,13 @@ export const CreateUserPanel: React.FC<CreateUserPanelProps> = ({
     );
   };
 
+  const handleUserRenewed = (userId: string, message: string) => {
+    showToast(message);
+    setRegisteredUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, created_at: new Date().toISOString() } : u))
+    );
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Toast Notification */}
@@ -208,6 +215,7 @@ export const CreateUserPanel: React.FC<CreateUserPanelProps> = ({
         onCapacityUpdated={handleCapacityUpdated}
         onUserDeleted={handleUserDeleted}
         onToggleAccess={handleToggleAccess}
+        onUserRenewed={handleUserRenewed}
         isLoading={isUsersLoading}
       />
     </div>

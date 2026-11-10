@@ -4,7 +4,6 @@ import { toPersianDigits } from '../lib/iranPlate';
 import { CapacityBadge } from './CapacityBadge';
 import { ThemeToggleMinimal } from './ThemeToggleMinimal';
 import { useSubscription } from '../context/SubscriptionContext';
-import { BillingModal } from './BillingModal';
 import { getPersianFirstName } from './Header';
 import { GlobalBackButton } from './GlobalBackButton';
 import {
@@ -37,7 +36,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onNavigateBack,
 }) => {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [isBillingOpen, setIsBillingOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { daysLeft } = useSubscription();
 
@@ -155,15 +153,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             />
 
             {/* Dynamic Subscription Status Badge */}
-            <button
-              type="button"
-              onClick={() => setIsBillingOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 text-xs font-bold font-mono transition-all cursor-pointer shadow-xs select-none"
-              title="مشاهده جزئیات و تمدید اشتراک ۱ ماهه"
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-400 text-xs font-bold font-mono select-none"
+              title="روزهای باقی‌مانده اشتراک"
             >
               <CreditCard className="w-3.5 h-3.5 text-orange-400" />
               <span>اشتراک: <strong className="text-white text-xs">{toPersianDigits(calculatedDaysRemaining)}</strong> روز</span>
-            </button>
+            </span>
           </div>
         )}
 
@@ -238,12 +234,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
       </div>
 
-      {/* Subscription Billing Modal */}
-      <BillingModal
-        isOpen={isBillingOpen}
-        onClose={() => setIsBillingOpen(false)}
-        currentUser={currentUser}
-      />
     </header>
   );
 };
